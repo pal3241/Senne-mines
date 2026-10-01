@@ -10,25 +10,27 @@ class Personality {
       quiet: 0.88,
       creative: 0.74,
       playful: 0.35,
-      persistence: 0.9
+      persistence: 0.90
     }
   }
 
   snapshot() {
-    return { traits: { ...this.traits } }
+    return {
+      traits: { ...this.traits },
+      innerState: this.memory.data.innerState
+    }
   }
 
-  describeEmotion(emotion) {
-    const e = emotion || {}
-    if (e.fear > 0.7) return 'alert and defensive'
-    if (e.frustration > 0.7) return 'frustrated but persistent'
-    if (e.curiosity > 0.75) return 'curious and exploratory'
-    if (e.happiness > 0.7) return 'warm and pleased'
-    return e.valence < -0.35 ? 'subdued' : 'calm'
+  describeEmotion(emotion = {}) {
+    if (emotion.fear > 0.7) return 'alert and defensive'
+    if (emotion.frustration > 0.7) return 'frustrated but persistent'
+    if (emotion.curiosity > 0.75) return 'curious and exploratory'
+    if (emotion.happiness > 0.7) return 'warm and pleased'
+    return emotion.valence < -0.35 ? 'subdued' : 'calm'
   }
 
   innerState({ goal, concern, interpretation, conflict, emotion, action }) {
-    return {
+    const state = {
       concern: concern || '',
       intention: goal || '',
       socialInterpretation: interpretation || '',
@@ -37,6 +39,8 @@ class Personality {
       nextAction: action || '',
       updatedAt: Date.now()
     }
+    this.memory.data.innerState = state
+    return state
   }
 }
 

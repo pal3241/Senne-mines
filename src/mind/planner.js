@@ -1,6 +1,7 @@
 const ALLOWED_SKILLS = [
-  'goto', 'goto_nearest_block', 'collect', 'craft', 'smelt', 'eat', 'find_food', 'sleep', 'attack_nearest',
-  'flee', 'follow_player', 'stop_following', 'inspect_vision', 'creative_build', 'farm', 'harvest_food', 'wait'
+  'goto', 'goto_nearest_block', 'collect', 'craft', 'smelt', 'eat', 'find_food', 'sleep',
+  'attack_nearest', 'flee', 'follow_player', 'stop_following', 'inspect_vision',
+  'creative_build', 'farm', 'harvest_food', 'wait'
 ]
 
 const SYSTEM = `You are the executive reasoning system of Sena, one persistent autonomous Minecraft character.
@@ -22,13 +23,23 @@ class Planner {
   }
 
   heuristic(world, needs, objective) {
-    if (needs.foodPressure === 'critical' && needs.hasFood) return { thought_summary: 'Hunger is critical.', current_goal: 'eat', action: { skill: 'eat', args: {} }, communication: { needed: false, importance: 0 }, memory_note: '' }
-    if (needs.foodPressure === 'critical') return { thought_summary: 'No food is known in inventory; find a safe food source.', current_goal: 'find food', action: { skill: 'find_food', args: {} }, communication: { needed: false, importance: 0 }, memory_note: '' }
-    if (!world.time.isDay && world.blocks.some(b => b.name.endsWith('_bed'))) return { thought_summary: 'Night has arrived and a bed is available.', current_goal: 'sleep', action: { skill: 'sleep', args: {} }, communication: { needed: false, importance: 0 }, memory_note: '' }
+    if (needs.foodPressure === 'critical' && needs.hasFood) {
+      return { thought_summary: 'Hunger is critical.', current_goal: 'eat', action: { skill: 'eat', args: {} }, communication: { needed: false, importance: 0 }, memory_note: '' }
+    }
+    if (needs.foodPressure === 'critical') {
+      return { thought_summary: 'No food is known in inventory; find a safe food source.', current_goal: 'find food', action: { skill: 'find_food', args: {} }, communication: { needed: false, importance: 0 }, memory_note: '' }
+    }
+    if (!world.time.isDay && world.blocks.some(b => b.name.endsWith('_bed'))) {
+      return { thought_summary: 'Night has arrived and a bed is available.', current_goal: 'sleep', action: { skill: 'sleep', args: {} }, communication: { needed: false, importance: 0 }, memory_note: '' }
+    }
     const threat = world.entities.find(e => e.hostile && e.distance < 8)
-    if (threat) return { thought_summary: 'Immediate hostile threat.', current_goal: 'survive', action: { skill: 'flee', args: { fromEntityId: threat.id, distance: 10 } }, communication: { needed: false, importance: 0 }, memory_note: '' }
+    if (threat) {
+      return { thought_summary: 'Immediate hostile threat.', current_goal: 'survive', action: { skill: 'flee', args: { fromEntityId: threat.id, distance: 10 } }, communication: { needed: false, importance: 0 }, memory_note: '' }
+    }
     const log = world.blocks.find(b => b.name.endsWith('_log'))
-    if (needs.resourcePressure.wood === 'high' && log) return { thought_summary: 'Need renewable basic materials.', current_goal: 'collect wood', action: { skill: 'collect', args: { block: log.name, amount: 6 } }, communication: { needed: false, importance: 0 }, memory_note: '' }
+    if (needs.resourcePressure.wood === 'high' && log) {
+      return { thought_summary: 'Need renewable basic materials.', current_goal: 'collect wood', action: { skill: 'collect', args: { block: log.name, amount: 6 } }, communication: { needed: false, importance: 0 }, memory_note: '' }
+    }
     return { thought_summary: 'No urgent heuristic action.', current_goal: objective.id, action: { skill: 'wait', args: { ms: 1500 } }, communication: { needed: false, importance: 0 }, memory_note: '' }
   }
 
@@ -55,28 +66,46 @@ class Planner {
       }
     }
 
+    if (context.social?.following && !context.pendingDirectMessage && !context.pendingSocialIntent) {
+      return {
+        thought_summary: 'Following the player is an active social intention.',
+        current_goal: 'follow player',
+        action: { skill: 'follow_player', args: { username: context.social.following, range: 3 } },
+        communication: { needed: false, importance: 0.1, message_intent: '' },
+        memory_note: ''
+      }
+    }
+
     if (!this.client.enabled) return this.heuristic(context.world, context.needs, context.objective)
+
     const user = JSON.stringify({
       allowedSkills: ALLOWED_SKILLS,
       maxBuildBlocks: this.maxBuildBlocks,
       drives: context.drives,
+      personality: context.personality || null,
       objective: context.objective,
       needs: context.needs,
       world: context.world,
       emotion: context.emotion,
       memory: context.memory,
       social: context.social,
-      visualObservation: context.visualObservation || null,
-      pendingDirectMessage: context.pendingDirectMessage || null,
       socialIntent: context.socialIntent || null,
       innerState: context.innerState || null,
+      visualObservation: context.visualObservation || null,
+      pendingDirectMessage: context.pendingDirectMessage || null,
       lastAction: context.lastAction || null
     })
-    const result = await this.client.json([{ role: 'system', content: SYSTEM }, { role: 'user', content: user }], { maxTokens: 1800, temperature: 0.2 })
-    if (!result.action || !ALLOWED_SKILLS.includes(result.action.skill)) throw new Error(`Planner returned invalid skill: ${result.action?.skill}`)
+    const result = await this.client.json(
+      [{ role: 'system', content: SYSTEM }, { role: 'user', content: user }],
+      { maxTokens: 1800, temperature: 0.2 }
+    )
+    if (!result.action || !ALLOWED_SKILLS.includes(result.action.skill)) {
+      throw new Error(`Planner returned invalid skill: ${result.action?.skill}`)
+    }
     result.action.args = result.action.args || {}
     return result
   }
+
   async manualDecision(context) {
     if (!this.client.enabled) {
       return {
@@ -93,6 +122,7 @@ class Planner {
       manualInstruction: instruction,
       allowedSkills: ALLOWED_SKILLS,
       maxBuildBlocks: this.maxBuildBlocks,
+      personality: context.personality || null,
       objective: context.objective,
       needs: context.needs,
       world: context.world,
@@ -102,24 +132,23 @@ class Planner {
       visualObservation: context.visualObservation || null,
       lastAction: context.lastAction || null
     })
-    const result = await this.client.json([
-      {
-        role: 'system',
-        content: SYSTEM + '\
-This is an EXPLICIT MANUAL COMMAND from the player. Follow the player task when safe and physically possible. Translate it into exactly one allowed skill for this cycle.'
-      },
-      { role: 'user', content: user }
-    ], { maxTokens: 1800, temperature: 0.15 })
+    const result = await this.client.json(
+      [
+        {
+          role: 'system',
+          content: SYSTEM + '\\nThis is an EXPLICIT MANUAL COMMAND from the player. Follow the player task when safe and physically possible. Translate it into exactly one allowed skill for this cycle.'
+        },
+        { role: 'user', content: user }
+      ],
+      { maxTokens: 1800, temperature: 0.15 }
+    )
     if (!result.action || !ALLOWED_SKILLS.includes(result.action.skill)) {
-      throw new Error(\`Manual planner returned invalid skill: \${result.action?.skill}\`)
+      throw new Error(`Manual planner returned invalid skill: ${result.action?.skill}`)
     }
     result.action.args = result.action.args || {}
     result.communication = result.communication || { needed: false, importance: 0, message_intent: '' }
     return result
   }
-
 }
-
-function contextHasFood(needs) { return needs.foodPressure === 'critical' && needs.hasFood !== false }
 
 module.exports = { Planner, ALLOWED_SKILLS }

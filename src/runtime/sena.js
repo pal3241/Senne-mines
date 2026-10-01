@@ -7,7 +7,6 @@ const { VisionMind } = require('../ai/vision')
 const { Memory } = require('../mind/memory')
 const { Emotion } = require('../mind/emotion')
 const { Personality } = require('../mind/personality')
-const { Personality } = require('../mind/personality')
 const { SocialMind } = require('../mind/social')
 const { CommunicationGate } = require('../mind/communication')
 const { parseCommand, helpText } = require('../mind/commands')
@@ -23,7 +22,6 @@ class SenaRuntime {
     this.memory = new Memory(config.runtime.memoryPath)
     this.emotion = new Emotion()
     this.personality = new Personality(this.memory)
-    this.personality = new Personality(this.memory)
     this.objectives = new ObjectiveEngine(this.memory)
     this.communication = new CommunicationGate()
     this.bot = null
@@ -37,7 +35,6 @@ class SenaRuntime {
     this.lastAction = null
     this.lastVisual = null
     this.pendingDirectMessage = null
-    this.pendingSocialIntent = null
     this.pendingSocialIntent = null
     this.manualCommand = null
     this.planningPaused = false
@@ -209,6 +206,7 @@ class SenaRuntime {
       pendingDirectMessage: this.pendingDirectMessage,
       lastAction: this.lastAction,
       manualCommand: this.manualCommand,
+      personality: this.personality.snapshot(),
       socialIntent: this.pendingSocialIntent,
       innerState: this.memory.data.innerState
     }
@@ -233,10 +231,14 @@ class SenaRuntime {
         result = await this.skills.execute(decision.action.skill, decision.action.args)
       }
       this.lastAction = { at: Date.now(), skill: decision.action.skill, args: decision.action.args, result, ms: Date.now() - started }
-      if (decision.action.skill === 'follow_player' && result?.ok && result.target) this.social.setFollowing(result.target)
-      if (decision.action.skill === 'stop_following' && result?.ok) this.social.clearFollowing()
-      if (decision.action.skill === 'follow_player' && result?.ok && result.target) this.social.setFollowing(result.target)
-      if (decision.action.skill === 'stop_following' && result?.ok) this.social.clearFollowing()
+      if (decision.action.skill === 'follow_player' && result?.ok && result.target) {
+        this.social.setFollowing(result.target)
+        this.pendingSocialIntent = null
+      }
+      if (decision.action.skill === 'stop_following' && result?.ok) {
+        this.social.clearFollowing()
+        this.pendingSocialIntent = null
+      }
       this.memory.episode('action', this.lastAction, result?.ok === false ? 0.45 : 0.25)
       this.emotion.event(result?.ok === false ? 'failure' : 'success', result?.ok === false ? 0.5 : 0.2)
     } catch (err) {
@@ -261,25 +263,9 @@ class SenaRuntime {
       action: decision.action.skill
     })
 
-    const socialInterpretation = this.pendingSocialIntent?.reason || this.pendingDirectMessage?.message || ''
-    const concern = needs.foodPressure === 'critical' ? 'food is critically low' :
-      needs.healthPressure === 'critical' ? 'health is critical' :
-      needs.immediateDanger ? 'there is an immediate threat' : ''
-    const conflict = (this.pendingSocialIntent && needs.immediateDanger)
-      ? 'survival takes priority over the social request' : ''
-    this.personality.innerState({
-      goal: decision.current_goal,
-      concern,
-      interpretation: socialInterpretation,
-      conflict,
-      emotion: this.emotion.snapshot(),
-      action: decision.action.skill
-    })
-
     if (decision.memory_note) this.memory.episode('thought_note', { note: decision.memory_note }, 0.3)
     await this.maybeCommunicate(decision)
     if (this.pendingDirectMessage && Date.now() - this.pendingDirectMessage.at > 45000) this.pendingDirectMessage = null
-    if (this.pendingSocialIntent && Date.now() - this.pendingSocialIntent.at > 45000) this.pendingSocialIntent = null
     if (this.pendingSocialIntent && Date.now() - this.pendingSocialIntent.at > 45000) this.pendingSocialIntent = null
     if (this.memory.data.episodes.length % 15 === 0) this.memory.save()
   }
