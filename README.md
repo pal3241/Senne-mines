@@ -55,7 +55,7 @@ Minecraft
 - NVIDIA NIM vision client using a different key
 - first-person VLM screenshots via prismarine-viewer + Puppeteer
 - planner with strict skill allowlist
-- navigation, gathering, crafting, eating, fleeing, combat, VLM inspection, farming, waiting
+- navigation, gathering, crafting, smelting, eating, food seeking/hunting, sleeping, fleeing, combat, VLM inspection, farming, waiting
 - **creative building executor** driven by LLM-generated relative placements, not a fixed blueprint
 - heuristic fallback if the LLM key is absent so the bot can still perform basic survival reactions
 
@@ -176,14 +176,14 @@ wait
 
 The example above is an interface example, **not a blueprint**. Sena's planner invents placements from current needs, terrain, memory and available materials.
 
-## Hardening roadmap
+## Planned social/economy layer\n\nAfter the core survival loop works reliably, Sena can grow into a more social survival character:\n\n- villager discovery, workstation/role detection and legitimate trading\n- animal breeding with food/resource accounting\n- player-to-player trading when the server provides a legitimate trade mechanism\n- negotiation/communication as an explicit social action, while keeping ordinary chat observational by default\n- server-specific economy adapters discovered from commands, GUIs and observed behavior\n\nFor public servers, authentication is treated as a server/account capability. Sena can support offline-mode servers and servers that explicitly provide their own password-based login protocol. It will not attempt to bypass Microsoft/Mojang authentication or server authentication controls.\n\n## Hardening roadmap
 
 Next work should focus on reliability rather than adding random features:
 
-1. robust crafting/progression dependency solving
+1. complete survival lifecycle: food → tools → shelter/bed → crafting/smelting → storage → recovery
 2. anti-stuck and action recovery
 3. safe combat controller and equipment management
-4. establish-new-farm logic, animal breeding and renewable resource accounting
+4. establish-new-farm logic, animal breeding, villager trading and renewable resource accounting
 5. better generative building: terrain scan → room/zoning plan → structural validation → VLM critique → repair
 6. economy command/GUI discovery and profit accounting
 7. memory retrieval + reflection instead of only recent episodic context
