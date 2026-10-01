@@ -126,6 +126,26 @@ Memory is stored in `data/memory.json` and is ignored by Git.
 
 The VLM is **not** called every frame. The runtime keeps a first-person renderer alive but only requests a visual interpretation on demand / periodic relevance. Reflexes never wait for the VLM.
 
+## Manual command interface
+
+By default, Sena does **not** treat ordinary player chat as instructions. Use the explicit command prefix:
+
+```text
+!sena help
+!sena status
+!sena build a self-sufficient base here
+!sena mine iron
+!sena farm wheat near the base
+!sena follow Fahri
+!sena stop
+!sena resume
+!sena cancel
+```
+
+A manual task stays active across reasoning cycles until it is cancelled, replaced, or naturally finished. Survival reflexes always have higher priority and may interrupt a manual task. Ordinary chat can still be observed by the social system without becoming an instruction.
+
+Spontaneous Sena speech is disabled by default with `SENA_ALLOW_SPONTANEOUS_CHAT=false`. This keeps the first usable build under your direct control; later we can enable the communication gate for natural companion behavior.
+
 ## Current skill interface
 
 ```text
