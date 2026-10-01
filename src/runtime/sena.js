@@ -8,6 +8,7 @@ const { Memory } = require('../mind/memory')
 const { Emotion } = require('../mind/emotion')
 const { SocialMind } = require('../mind/social')
 const { CommunicationGate } = require('../mind/communication')
+const { parseCommand, helpText } = require('../mind/commands')
 const { evaluateNeeds } = require('../mind/needs')
 const { ObjectiveEngine } = require('../mind/objectives')
 const { Planner } = require('../mind/planner')
@@ -32,6 +33,8 @@ class SenaRuntime {
     this.lastAction = null
     this.lastVisual = null
     this.pendingDirectMessage = null
+    this.manualCommand = null
+    this.planningPaused = false
     this.running = false
     this.thinking = false
   }
@@ -91,9 +94,42 @@ class SenaRuntime {
     if (username === this.bot.username) return
     this.social.hear(username, message)
     this.objectives.observeChat(username, message)
-    if (this.social.directMention(username, message)) {
-      this.pendingDirectMessage = { at: Date.now(), username, message }
-      this.memory.episode('direct_message', { username, message }, 0.45)
+
+    const command = parseCommand(username, message)
+    if (!command) return
+
+    if (command.type === 'help') {
+      this.bot.chat(helpText())
+      return
+    }
+    if (command.type === 'status') {
+      const task = this.manualCommand?.instruction || (this.planningPaused ? 'paused' : 'autonomous')
+      this.bot.chat(`Sena: ${task.slice(0, 120)}`)
+      return
+    }
+    if (command.type === 'pause') {
+      this.planningPaused = true
+      this.manualCommand = null
+      this.bot.chat('Sena: paused. Reflex survival remains active.')
+      return
+    }
+    if (command.type === 'resume') {
+      this.planningPaused = false
+      this.manualCommand = null
+      this.bot.chat('Sena: autonomous mode resumed.')
+      return
+    }
+    if (command.type === 'cancel') {
+      this.manualCommand = null
+      this.planningPaused = false
+      this.bot.chat('Sena: manual task cancelled.')
+      return
+    }
+    if (command.type === 'task') {
+      this.manualCommand = { username, instruction: command.instruction, startedAt: Date.now() }
+      this.planningPaused = false
+      this.memory.episode('manual_command', { username, instruction: command.instruction }, 0.7)
+      this.bot.chat(`Sena: doing — ${command.instruction.slice(0, 100)}`)
     }
   }
 
@@ -116,7 +152,7 @@ class SenaRuntime {
   loopMind() {
     const tick = async () => {
       if (!this.running) return
-      if (!this.thinking && !this.reflex.busy) {
+      if (!this.planningPaused && !this.thinking && !this.reflex.busy) {
         this.thinking = true
         try { await this.thinkOnce() } catch (err) { console.error('[mind]', err.message); this.emotion.event('failure', 0.4) }
         this.thinking = false
@@ -155,7 +191,8 @@ class SenaRuntime {
       social: this.social.context(),
       visualObservation: this.lastVisual?.observation || null,
       pendingDirectMessage: this.pendingDirectMessage,
-      lastAction: this.lastAction
+      lastAction: this.lastAction,
+      manualCommand: this.manualCommand
     }
 
     let decision = await this.planner.decide(context)
@@ -194,6 +231,7 @@ class SenaRuntime {
   }
 
   async maybeCommunicate(decision) {
+    if (!this.config.runtime.allowSpontaneousChat && !this.pendingDirectMessage) return
     const direct = Boolean(this.pendingDirectMessage)
     const wanted = Boolean(decision.communication?.needed)
     if (!direct && !wanted) return
