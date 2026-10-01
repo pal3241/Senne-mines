@@ -1,0 +1,23 @@
+{
+  "name": "senne-mines",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Sena: a self-sufficient cognitive Minecraft companion powered by Mineflayer and NVIDIA NIM.",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "node --test",
+    "check": "find src test -name '*.js' -print0 | xargs -0 -n1 node --check"
+  },
+  "engines": {
+    "node": ">=20 <25"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "mineflayer": "^4.39.0",
+    "mineflayer-pathfinder": "^2.4.5",
+    "prismarine-viewer": "^1.33.0",
+    "puppeteer": "^24.0.0",
+    "vec3": "^0.1.10"
+  }
+}
