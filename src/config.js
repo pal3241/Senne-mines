@@ -25,7 +25,8 @@ module.exports = {
     memoryPath: process.env.SENA_MEMORY_PATH || './data/memory.json',
     viewerPort: int('SENA_VIEWER_PORT', 3007),
     enableVision: bool('SENA_ENABLE_VISION', true),
-    maxBuildBlocks: int('SENA_MAX_BUILD_BLOCKS', 160)
+    maxBuildBlocks: int('SENA_MAX_BUILD_BLOCKS', 160),
+    allowSpontaneousChat: bool('SENA_ALLOW_SPONTANEOUS_CHAT', false)
   },
   nim: {
     baseUrl: process.env.NVIDIA_NIM_BASE_URL || 'https://integrate.api.nvidia.com/v1',
