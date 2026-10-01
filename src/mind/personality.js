@@ -1,7 +1,7 @@
 class Personality {
   constructor(memory) {
     this.memory = memory
-    this.traits = {
+    if (!this.memory.data.innerState) this.memory.data.innerState = null\n    this.traits = {
       independent: 0.85,
       curious: 0.72,
       cautious: 0.68,

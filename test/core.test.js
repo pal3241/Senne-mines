@@ -38,3 +38,31 @@ test('economy evidence changes dynamic world objective', () => {
   assert.equal(parseCommand('Fahri', '!sena cancel').type, 'cancel')
   assert.equal(parseCommand('Fahri', '!sena status').type, 'status')
 }
+
+const { SocialMind } = require('../src/mind/social')
+const { Personality } = require('../src/mind/personality')
+
+test('social intent recognizes direct follow request without treating normal chat as command', () => {
+  const memory = { data: { relationships: {} } }
+  const social = new SocialMind(memory, 'Sena')
+  const intent = social.interpret('Fahri', 'sen ikut sini')
+  assert.equal(intent.intent, 'follow_player')
+  assert.equal(intent.target, 'Fahri')
+  assert.equal(intent.confidence >= 0.85, true)
+})
+
+test('personality produces structured inner state', () => {
+  const memory = { data: { innerState: null } }
+  const personality = new Personality(memory)
+  const state = personality.innerState({
+    goal: 'follow player',
+    concern: '',
+    interpretation: 'Player asked Sena to follow.',
+    conflict: '',
+    emotion: { valence: 0.2, fear: 0, frustration: 0, curiosity: 0.8, happiness: 0.3 },
+    action: 'follow_player'
+  })
+  assert.equal(state.intention, 'follow player')
+  assert.equal(state.socialInterpretation, 'Player asked Sena to follow.')
+  assert.equal(memory.data.innerState.nextAction, 'follow_player')
+})

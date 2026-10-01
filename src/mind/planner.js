@@ -1,6 +1,6 @@
 const ALLOWED_SKILLS = [
   'goto', 'goto_nearest_block', 'collect', 'craft', 'smelt', 'eat', 'find_food', 'sleep', 'attack_nearest',
-  'flee', 'inspect_vision', 'creative_build', 'farm', 'harvest_food', 'wait'
+  'flee', 'follow_player', 'stop_following', 'inspect_vision', 'creative_build', 'farm', 'harvest_food', 'wait'
 ]
 
 const SYSTEM = `You are the executive reasoning system of Sena, one persistent autonomous Minecraft character.

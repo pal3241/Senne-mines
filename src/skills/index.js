@@ -180,6 +180,23 @@ class Skills {
     return { ok: true }
   }
 
+  async follow_player({ username, range = 3 } = {}) {
+    if (!username) throw new Error('username required')
+    const target = Object.values(this.bot.entities).find(e =>
+      e && e.username && e.username.toLowerCase() === String(username).toLowerCase() &&
+      e !== this.bot.entity && e.position && e.isValid !== false
+    )
+    if (!target) throw new Error('Player ' + username + ' is not currently visible')
+    this.setMovements()
+    this.bot.pathfinder.setGoal(new goals.GoalFollow(target, Math.max(1, Number(range) || 3)), true)
+    return { ok: true, target: target.username, range: Math.max(1, Number(range) || 3) }
+  }
+
+  async stop_following() {
+    this.bot.pathfinder.stop()
+    return { ok: true }
+  }
+
   async inspect_vision({ context = '' } = {}) {
     if (!this.visionCapture || !this.visionMind) throw new Error('Vision is disabled')
     const image = await this.visionCapture.capture()

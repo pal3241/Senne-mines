@@ -4,7 +4,7 @@ const path = require('path')
 class Memory {
   constructor(filePath) {
     this.filePath = filePath
-    this.data = { episodes: [], facts: {}, relationships: {}, server: {}, reflections: [] }
+    this.data = { episodes: [], facts: {}, relationships: {}, server: {}, reflections: [], innerState: null }
     this.load()
   }
 
@@ -41,7 +41,7 @@ class Memory {
       recentEpisodes: this.recent(12),
       server: this.data.server,
       relationships: this.data.relationships,
-      recentReflections: this.data.reflections.slice(-4)
+      recentReflections: this.data.reflections.slice(-4),\n      innerState: this.data.innerState
     }
   }
 }

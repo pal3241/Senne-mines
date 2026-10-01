@@ -2,7 +2,7 @@ class SocialMind {
   constructor(memory, selfName = 'Sena') {
     this.memory = memory
     this.selfName = selfName.toLowerCase()
-    this.recentMessages = []
+    this.recentMessages = []\n    this.following = null
   }
 
   relation(username) {
@@ -29,7 +29,7 @@ class SocialMind {
   }
 
   context() {
-    return { recentMessages: this.recentMessages.slice(-10), relationships: this.memory.data.relationships }
+    return { recentMessages: this.recentMessages.slice(-10), relationships: this.memory.data.relationships, following: this.following }
   }
 }
 
