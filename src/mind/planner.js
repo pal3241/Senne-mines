@@ -30,6 +30,7 @@ class Planner {
   }
 
   async decide(context) {
+    if (context.manualCommand?.instruction) return this.manualDecision(context)
     if (!this.client.enabled) return this.heuristic(context.world, context.needs, context.objective)
     const user = JSON.stringify({
       allowedSkills: ALLOWED_SKILLS,
@@ -50,6 +51,46 @@ class Planner {
     result.action.args = result.action.args || {}
     return result
   }
+  async manualDecision(context) {
+    if (!this.client.enabled) {
+      return {
+        thought_summary: 'Manual instruction received, but NIM is not configured.',
+        current_goal: context.manualCommand.instruction,
+        action: { skill: 'wait', args: { ms: 1000 } },
+        communication: { needed: true, importance: 1, message_intent: 'NIM is not configured; I cannot interpret that instruction yet.' },
+        memory_note: ''
+      }
+    }
+
+    const instruction = context.manualCommand.instruction
+    const user = JSON.stringify({
+      manualInstruction: instruction,
+      allowedSkills: ALLOWED_SKILLS,
+      maxBuildBlocks: this.maxBuildBlocks,
+      objective: context.objective,
+      needs: context.needs,
+      world: context.world,
+      emotion: context.emotion,
+      memory: context.memory,
+      social: context.social,
+      visualObservation: context.visualObservation || null,
+      lastAction: context.lastAction || null
+    })
+    const result = await this.client.json([
+      {
+        role: 'system',
+        content: SYSTEM + '\\nThis is an EXPLICIT MANUAL COMMAND from the player. Follow the player task when safe and physically possible. Translate it into exactly one allowed skill for this cycle.'
+      },
+      { role: 'user', content: user }
+    ], { maxTokens: 1800, temperature: 0.15 })
+    if (!result.action || !ALLOWED_SKILLS.includes(result.action.skill)) {
+      throw new Error(\`Manual planner returned invalid skill: \${result.action?.skill}\`)
+    }
+    result.action.args = result.action.args || {}
+    result.communication = result.communication || { needed: false, importance: 0, message_intent: '' }
+    return result
+  }
+
 }
 
 module.exports = { Planner, ALLOWED_SKILLS }
