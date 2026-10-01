@@ -1,5 +1,6 @@
 const test = require('node:test')
 const assert = require('node:assert/strict')
+const { parseCommand } = require('../src/mind/commands')
 const { CommunicationGate } = require('../src/mind/communication')
 const { evaluateNeeds } = require('../src/mind/needs')
 const { ObjectiveEngine } = require('../src/mind/objectives')
@@ -27,3 +28,13 @@ test('economy evidence changes dynamic world objective', () => {
   objective.observeChat('server', 'Use /shop and /balance to buy and sell items')
   assert.equal(objective.primary().id, 'become_wealthiest_player')
 })
+
+
+{
+  const a = parseCommand('Fahri', '!sena build a base')
+  assert.equal(a.type, 'task')
+  assert.equal(a.instruction, 'build a base')
+  assert.equal(parseCommand('Fahri', 'hello'), null)
+  assert.equal(parseCommand('Fahri', '!sena cancel').type, 'cancel')
+  assert.equal(parseCommand('Fahri', '!sena status').type, 'status')
+}
