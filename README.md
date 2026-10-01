@@ -176,7 +176,19 @@ wait
 
 The example above is an interface example, **not a blueprint**. Sena's planner invents placements from current needs, terrain, memory and available materials.
 
-## Planned social/economy layer\n\nAfter the core survival loop works reliably, Sena can grow into a more social survival character:\n\n- villager discovery, workstation/role detection and legitimate trading\n- animal breeding with food/resource accounting\n- player-to-player trading when the server provides a legitimate trade mechanism\n- negotiation/communication as an explicit social action, while keeping ordinary chat observational by default\n- server-specific economy adapters discovered from commands, GUIs and observed behavior\n\nFor public servers, authentication is treated as a server/account capability. Sena can support offline-mode servers and servers that explicitly provide their own password-based login protocol. It will not attempt to bypass Microsoft/Mojang authentication or server authentication controls.\n\n## Hardening roadmap
+## Planned social/economy layer\n\nAfter the core survival loop works reliably, Sena can grow into a more social survival character:\n\n- villager discovery, workstation/role detection and legitimate trading\n- animal breeding with food/resource accounting\n- player-to-player trading when the server provides a legitimate trade mechanism\n- negotiation/communication as an explicit social action, while keeping ordinary chat observational by default\n- server-specific economy adapters discovered from commands, GUIs and observed behavior\n\nFor public servers, authentication is treated as a server/account capability. Sena can support offline-mode servers and servers that explicitly provide their own password-based login protocol. It will not attempt to bypass Microsoft/Mojang authentication or server authentication controls.\n\n## Planned social/economy layer
+
+After the core survival loop works reliably, Sena can grow into a more social survival character:
+
+- villager discovery, workstation/role detection and legitimate trading
+- animal breeding with food/resource accounting
+- player-to-player trading when the server provides a legitimate trade mechanism
+- negotiation/communication as an explicit social action, while ordinary chat remains observational by default
+- server-specific economy adapters discovered from commands, GUIs and observed behavior
+
+For public servers, authentication is treated as a server/account capability. Sena can support offline-mode servers and servers that explicitly provide their own password-based login protocol. It will not attempt to bypass Microsoft/Mojang authentication or server authentication controls.
+
+## Hardening roadmap
 
 Next work should focus on reliability rather than adding random features:
 
