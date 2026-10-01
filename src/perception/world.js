@@ -35,7 +35,7 @@ function sampleBlocks(bot) {
   const names = [
     'oak_log', 'birch_log', 'spruce_log', 'jungle_log', 'acacia_log', 'dark_oak_log', 'mangrove_log', 'cherry_log',
     'stone', 'coal_ore', 'iron_ore', 'deepslate_iron_ore', 'diamond_ore', 'deepslate_diamond_ore',
-    'crafting_table', 'furnace', 'chest', 'wheat', 'carrots', 'potatoes', 'water', 'lava'
+    'crafting_table', 'furnace', 'chest', 'white_bed', 'wheat', 'carrots', 'potatoes', 'water', 'lava'
   ]
   const blocks = []
   for (const name of names) {
@@ -64,7 +64,7 @@ function snapshot(bot, extra = {}) {
       timeOfDay: bot.time?.timeOfDay ?? null,
       isDay: bot.time?.isDay ?? null
     },
-    inventory: inventoryCounts(bot),
+    inventory: { ...inventoryCounts(bot), hasFood: inventoryCounts(bot) && Object.keys(inventoryCounts(bot)).some(name => ['bread','cooked_beef','cooked_porkchop','cooked_chicken','cooked_mutton','baked_potato','carrot','potato','apple','golden_carrot'].includes(name)), hasBed: Object.keys(inventoryCounts(bot)).some(name => name.endsWith('_bed')) },
     entities: nearbyEntities(bot),
     blocks: sampleBlocks(bot),
     ...extra
