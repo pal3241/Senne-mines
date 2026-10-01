@@ -41,7 +41,8 @@ class Memory {
       recentEpisodes: this.recent(12),
       server: this.data.server,
       relationships: this.data.relationships,
-      recentReflections: this.data.reflections.slice(-4),\n      innerState: this.data.innerState
+      recentReflections: this.data.reflections.slice(-4),
+      innerState: this.data.innerState
     }
   }
 }

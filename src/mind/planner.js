@@ -23,7 +23,9 @@ class Planner {
 
   heuristic(world, needs, objective) {
     if (needs.foodPressure === 'critical' && needs.hasFood) return { thought_summary: 'Hunger is critical.', current_goal: 'eat', action: { skill: 'eat', args: {} }, communication: { needed: false, importance: 0 }, memory_note: '' }
-    if (needs.foodPressure === 'critical') return { thought_summary: 'No food is known in inventory; find a safe food source.', current_goal: 'find food', action: { skill: 'find_food', args: {} }, communication: { needed: false, importance: 0 }, memory_note: '' }\n    if (!world.time.isDay && world.blocks.some(b => b.name.endsWith('_bed'))) return { thought_summary: 'Night has arrived and a bed is available.', current_goal: 'sleep', action: { skill: 'sleep', args: {} }, communication: { needed: false, importance: 0 }, memory_note: '' }\n    const threat = world.entities.find(e => e.hostile && e.distance < 8)
+    if (needs.foodPressure === 'critical') return { thought_summary: 'No food is known in inventory; find a safe food source.', current_goal: 'find food', action: { skill: 'find_food', args: {} }, communication: { needed: false, importance: 0 }, memory_note: '' }
+    if (!world.time.isDay && world.blocks.some(b => b.name.endsWith('_bed'))) return { thought_summary: 'Night has arrived and a bed is available.', current_goal: 'sleep', action: { skill: 'sleep', args: {} }, communication: { needed: false, importance: 0 }, memory_note: '' }
+    const threat = world.entities.find(e => e.hostile && e.distance < 8)
     if (threat) return { thought_summary: 'Immediate hostile threat.', current_goal: 'survive', action: { skill: 'flee', args: { fromEntityId: threat.id, distance: 10 } }, communication: { needed: false, importance: 0 }, memory_note: '' }
     const log = world.blocks.find(b => b.name.endsWith('_log'))
     if (needs.resourcePressure.wood === 'high' && log) return { thought_summary: 'Need renewable basic materials.', current_goal: 'collect wood', action: { skill: 'collect', args: { block: log.name, amount: 6 } }, communication: { needed: false, importance: 0 }, memory_note: '' }
@@ -32,6 +34,27 @@ class Planner {
 
   async decide(context) {
     if (context.manualCommand?.instruction) return this.manualDecision(context)
+
+    if (context.socialIntent?.intent === 'follow_player' && context.socialIntent.confidence >= 0.85) {
+      return {
+        thought_summary: 'The player directly asked Sena to follow.',
+        current_goal: 'follow player',
+        action: { skill: 'follow_player', args: { username: context.socialIntent.target, range: 3 } },
+        communication: { needed: false, importance: 0.2, message_intent: '' },
+        memory_note: 'Player requested follow behavior.'
+      }
+    }
+
+    if (context.socialIntent?.intent === 'stop_following' && context.socialIntent.confidence >= 0.85) {
+      return {
+        thought_summary: 'The player asked Sena to stop following.',
+        current_goal: 'stop following',
+        action: { skill: 'stop_following', args: {} },
+        communication: { needed: false, importance: 0.2, message_intent: '' },
+        memory_note: 'Player requested stop-following behavior.'
+      }
+    }
+
     if (!this.client.enabled) return this.heuristic(context.world, context.needs, context.objective)
     const user = JSON.stringify({
       allowedSkills: ALLOWED_SKILLS,
@@ -45,6 +68,8 @@ class Planner {
       social: context.social,
       visualObservation: context.visualObservation || null,
       pendingDirectMessage: context.pendingDirectMessage || null,
+      socialIntent: context.socialIntent || null,
+      innerState: context.innerState || null,
       lastAction: context.lastAction || null
     })
     const result = await this.client.json([{ role: 'system', content: SYSTEM }, { role: 'user', content: user }], { maxTokens: 1800, temperature: 0.2 })
@@ -80,7 +105,8 @@ class Planner {
     const result = await this.client.json([
       {
         role: 'system',
-        content: SYSTEM + '\\nThis is an EXPLICIT MANUAL COMMAND from the player. Follow the player task when safe and physically possible. Translate it into exactly one allowed skill for this cycle.'
+        content: SYSTEM + '\
+This is an EXPLICIT MANUAL COMMAND from the player. Follow the player task when safe and physically possible. Translate it into exactly one allowed skill for this cycle.'
       },
       { role: 'user', content: user }
     ], { maxTokens: 1800, temperature: 0.15 })
@@ -94,4 +120,6 @@ class Planner {
 
 }
 
-function contextHasFood(needs) { return needs.foodPressure === 'critical' && needs.hasFood !== false }\n\nmodule.exports = { Planner, ALLOWED_SKILLS }
+function contextHasFood(needs) { return needs.foodPressure === 'critical' && needs.hasFood !== false }
+
+module.exports = { Planner, ALLOWED_SKILLS }
