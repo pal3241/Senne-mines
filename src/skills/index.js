@@ -57,15 +57,88 @@ class Skills {
     return { ok: collected > 0, collected }
   }
 
+  inventoryCount(name) {
+    return this.bot.inventory.items().filter(item => item.name === name).reduce((sum, item) => sum + item.count, 0)
+  }
+
+  findNearbyEntity(names, maxDistance = 32) {
+    const allowed = new Set(Array.isArray(names) ? names : [names])
+    return Object.values(this.bot.entities)
+      .filter(e => e !== this.bot.entity && e.position && e.isValid !== false)
+      .filter(e => allowed.size === 0 || allowed.has(e.name))
+      .filter(e => e.position.distanceTo(this.bot.entity.position) <= maxDistance)
+      .sort((a, b) => a.position.distanceTo(this.bot.entity.position) - b.position.distanceTo(this.bot.entity.position))[0]
+  }
+
   async craft({ item, amount = 1 }) {
     const itemType = this.bot.registry.itemsByName[item]?.id
-    if (itemType == null) throw new Error(`Unknown item ${item}`)
+    if (itemType == null) throw new Error('Unknown item ' + item)
+    const count = Math.max(1, Number(amount) || 1)
     let table = this.bot.findBlock({ matching: this.bot.registry.blocksByName.crafting_table?.id, maxDistance: 16 })
-    let recipes = this.bot.recipesFor(itemType, null, Number(amount) || 1, table)
-    if (!recipes.length) recipes = this.bot.recipesFor(itemType, null, Number(amount) || 1, null)
-    if (!recipes.length) throw new Error(`No currently craftable recipe for ${item}`)
-    await this.bot.craft(recipes[0], Number(amount) || 1, table || null)
-    return { ok: true, item, amount }
+    let recipes = this.bot.recipesFor(itemType, null, count, table)
+    if (!recipes.length) recipes = this.bot.recipesFor(itemType, null, count, null)
+    if (!recipes.length) throw new Error('No currently craftable recipe for ' + item)
+    await this.bot.craft(recipes[0], count, table || null)
+    return { ok: true, item, amount: count }
+  }
+
+  async smelt({ item, amount = 1 }) {
+    const input = this.bot.registry.itemsByName[item]?.id
+    if (input == null) throw new Error('Unknown smelt input ' + item)
+    const furnaceType = this.bot.registry.blocksByName.furnace?.id
+    const furnace = furnaceType == null ? null : this.bot.findBlock({ matching: furnaceType, maxDistance: 16 })
+    if (!furnace) throw new Error('No furnace nearby')
+    const fuel = this.bot.inventory.items().find(i => ['coal', 'charcoal', 'oak_log', 'birch_log', 'spruce_log', 'jungle_log', 'acacia_log', 'dark_oak_log', 'cherry_log'].includes(i.name))
+    if (!fuel) throw new Error('No usable furnace fuel in inventory')
+    const source = this.bot.inventory.items().find(i => i.type === input)
+    if (!source) throw new Error('No ' + item + ' in inventory')
+    const target = Math.min(Number(amount) || 1, source.count)
+    await this.goto({ ...furnace.position, range: 3 })
+    const f = await this.bot.openFurnace(furnace)
+    try {
+      await f.putFuel(fuel.type, null, Math.min(fuel.count, target))
+      await f.putInput(source.type, null, target)
+      await new Promise(resolve => setTimeout(resolve, Math.min(30000, 1200 + target * 1200)))
+      await f.takeOutput()
+    } finally {
+      try { f.close() } catch {}
+    }
+    return { ok: true, item, amount: target }
+  }
+
+  async find_food({ maxDistance = 48, prefer = ['cow', 'pig', 'sheep', 'chicken', 'rabbit'] } = {}) {
+    const entity = this.findNearbyEntity(prefer, maxDistance)
+    if (entity) {
+      await this.goto({ ...entity.position, range: 2 })
+      for (let hit = 0; hit < 12 && entity.isValid !== false; hit++) {
+        await this.bot.lookAt(entity.position.offset(0, 1, 0), true)
+        this.bot.attack(entity)
+        await new Promise(resolve => setTimeout(resolve, 180))
+      }
+      return { ok: true, source: entity.name }
+    }
+    for (const block of ['wheat', 'carrots', 'potatoes', 'beetroots']) {
+      const type = this.bot.registry.blocksByName[block]?.id
+      if (type == null) continue
+      const found = this.bot.findBlock({ matching: type, maxDistance })
+      if (found) {
+        await this.goto({ ...found.position, range: 2 })
+        await this.bot.dig(found, true)
+        return { ok: true, source: block }
+      }
+    }
+    throw new Error('No nearby food source found')
+  }
+
+  async sleep({ maxDistance = 24 } = {}) {
+    if (this.bot.time?.isDay) return { ok: true, skipped: 'daytime' }
+    const bedNames = ['white_bed', 'orange_bed', 'magenta_bed', 'light_blue_bed', 'yellow_bed', 'lime_bed', 'pink_bed', 'gray_bed', 'light_gray_bed', 'cyan_bed', 'purple_bed', 'blue_bed', 'brown_bed', 'green_bed', 'red_bed', 'black_bed']
+    const ids = bedNames.map(name => this.bot.registry.blocksByName[name]?.id).filter(id => id != null)
+    const bed = this.bot.findBlock({ matching: block => ids.includes(block.type), maxDistance })
+    if (!bed) throw new Error('No bed nearby')
+    await this.goto({ ...bed.position, range: 2 })
+    await this.bot.sleep(bed)
+    return { ok: true, bed: bed.name }
   }
 
   async eat() {
