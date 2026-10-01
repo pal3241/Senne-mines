@@ -263,6 +263,21 @@ class SenaRuntime {
       action: decision.action.skill
     })
 
+    const socialInterpretation = this.pendingSocialIntent?.reason || this.pendingDirectMessage?.message || ''
+    const concern = needs.foodPressure === 'critical' ? 'food is critically low' :
+      needs.healthPressure === 'critical' ? 'health is critical' :
+      needs.immediateDanger ? 'there is an immediate threat' : ''
+    const conflict = (this.pendingSocialIntent && needs.immediateDanger)
+      ? 'survival takes priority over the social request' : ''
+    this.personality.innerState({
+      goal: decision.current_goal,
+      concern,
+      interpretation: socialInterpretation,
+      conflict,
+      emotion: this.emotion.snapshot(),
+      action: decision.action.skill
+    })
+
     if (decision.memory_note) this.memory.episode('thought_note', { note: decision.memory_note }, 0.3)
     await this.maybeCommunicate(decision)
     if (this.pendingDirectMessage && Date.now() - this.pendingDirectMessage.at > 45000) this.pendingDirectMessage = null

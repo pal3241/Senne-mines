@@ -46,7 +46,7 @@ class Planner {
   async decide(context) {
     if (context.manualCommand?.instruction) return this.manualDecision(context)
 
-    if (context.socialIntent?.intent === 'follow_player' && context.socialIntent.confidence >= 0.85) {
+    if (context.socialIntent?.intent === 'follow_player' && context.socialIntent.confidence >= 0.85 && !context.needs.immediateDanger && context.needs.foodPressure !== 'critical' && context.needs.healthPressure !== 'critical') {
       return {
         thought_summary: 'The player directly asked Sena to follow.',
         current_goal: 'follow player',
@@ -66,7 +66,7 @@ class Planner {
       }
     }
 
-    if (context.social?.following && !context.pendingDirectMessage && !context.pendingSocialIntent) {
+    if (context.social?.following && !context.pendingDirectMessage && !context.pendingSocialIntent && !context.needs.immediateDanger && context.needs.foodPressure !== 'critical' && context.needs.healthPressure !== 'critical') {
       return {
         thought_summary: 'Following the player is an active social intention.',
         current_goal: 'follow player',
@@ -136,7 +136,8 @@ class Planner {
       [
         {
           role: 'system',
-          content: SYSTEM + '\\nThis is an EXPLICIT MANUAL COMMAND from the player. Follow the player task when safe and physically possible. Translate it into exactly one allowed skill for this cycle.'
+          content: SYSTEM + '\
+This is an EXPLICIT MANUAL COMMAND from the player. Follow the player task when safe and physically possible. Translate it into exactly one allowed skill for this cycle.'
         },
         { role: 'user', content: user }
       ],
