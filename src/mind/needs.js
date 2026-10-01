@@ -18,6 +18,8 @@ function evaluateNeeds(world) {
     foodPressure: food <= 6 ? 'critical' : (food <= 12 || foodItems < 4) ? 'high' : foodItems < 12 ? 'medium' : 'low',
     shelterPressure: world.time?.isDay === false && !inv.bed ? 'medium' : 'low',
     resourcePressure: { wood: wood < 16 ? 'high' : 'low', iron: iron < 8 ? 'medium' : 'low' },
+    hasFood: foodItems > 0,
+    hasBed: Boolean(inv.hasBed || Object.keys(inv).some(name => name.endsWith('_bed'))),
     reserves: { foodItems, wood, iron }
   }
 }
