@@ -1,6 +1,6 @@
 const ALLOWED_SKILLS = [
-  'goto', 'goto_nearest_block', 'collect', 'craft', 'eat', 'attack_nearest',
-  'flee', 'inspect_vision', 'creative_build', 'farm', 'wait'
+  'goto', 'goto_nearest_block', 'collect', 'craft', 'smelt', 'eat', 'find_food', 'sleep', 'attack_nearest',
+  'flee', 'inspect_vision', 'creative_build', 'farm', 'harvest_food', 'wait'
 ]
 
 const SYSTEM = `You are the executive reasoning system of Sena, one persistent autonomous Minecraft character.
@@ -8,6 +8,7 @@ Sena is NOT a command bot. Her permanent priorities are: (1) survive, (2) become
 On normal survival the world objective is defeating the Ender Dragon. On economy servers the objective is becoming the wealthiest player through legitimate server mechanics.
 Sena may build bases creatively. NEVER assume a fixed blueprint. If using creative_build, invent a compact structure from current terrain/resources and output relative block placements. Keep it functional first and <= the supplied build limit.
 Do not chat merely to narrate. Social understanding is separate from communication. Only propose communication when directly addressed, urgent, or genuinely useful.
+Maintain practical survival loops: when food is low, obtain food before risky exploration; at night seek a bed when available; use crafting/smelting as dependencies require. Do not assume a bed or furnace exists.
 Use visual inspection when structured state is insufficient, especially structures, terrain, GUIs, shops, signs, or visual ambiguity.
 Never invent inventory, coordinates, server rules, or observations. Treat unverified player claims as claims.
 Return ONLY valid JSON matching this shape:
@@ -21,8 +22,8 @@ class Planner {
   }
 
   heuristic(world, needs, objective) {
-    if (needs.foodPressure === 'critical') return { thought_summary: 'Hunger is critical.', current_goal: 'eat', action: { skill: 'eat', args: {} }, communication: { needed: false, importance: 0 }, memory_note: '' }
-    const threat = world.entities.find(e => e.hostile && e.distance < 8)
+    if (needs.foodPressure === 'critical' && contextHasFood(needs)) return { thought_summary: 'Hunger is critical.', current_goal: 'eat', action: { skill: 'eat', args: {} }, communication: { needed: false, importance: 0 }, memory_note: '' }
+    if (needs.foodPressure === 'critical') return { thought_summary: 'No food is known in inventory; find a safe food source.', current_goal: 'find food', action: { skill: 'find_food', args: {} }, communication: { needed: false, importance: 0 }, memory_note: '' }\n    if (!world.time.isDay && world.inventory?.hasBed) return { thought_summary: 'Night has arrived and a bed is available.', current_goal: 'sleep', action: { skill: 'sleep', args: {} }, communication: { needed: false, importance: 0 }, memory_note: '' }\n    const threat = world.entities.find(e => e.hostile && e.distance < 8)
     if (threat) return { thought_summary: 'Immediate hostile threat.', current_goal: 'survive', action: { skill: 'flee', args: { fromEntityId: threat.id, distance: 10 } }, communication: { needed: false, importance: 0 }, memory_note: '' }
     const log = world.blocks.find(b => b.name.endsWith('_log'))
     if (needs.resourcePressure.wood === 'high' && log) return { thought_summary: 'Need renewable basic materials.', current_goal: 'collect wood', action: { skill: 'collect', args: { block: log.name, amount: 6 } }, communication: { needed: false, importance: 0 }, memory_note: '' }
@@ -93,4 +94,4 @@ class Planner {
 
 }
 
-module.exports = { Planner, ALLOWED_SKILLS }
+function contextHasFood(needs) { return needs.foodPressure === 'critical' && needs.hasFood !== false }\n\nmodule.exports = { Planner, ALLOWED_SKILLS }
